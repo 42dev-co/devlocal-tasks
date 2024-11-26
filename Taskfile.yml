@@ -5,17 +5,17 @@ tasks:
     silent: true
     desc: "Show help"
     cmds:
-      -| 
+      - |
         echo "Usage: task [task]"
         echo ""
         echo "Tasks:"
-        echo "  init - Initialize a new devlocal environment"\
-        echo "    name=[name] - Name of the environment e.g. devlocal-mymac"\
+        echo "  init - Initialize a new devlocal environment"
+        echo "    name=[name] - Name of the environment e.g. devlocal-mymac"
         echo "    description='[description]' - Description of the environment"
         echo "  help - Show help"
 
   init:
-    silient: true
+    silent: true
     desc: "Initialize a new devlocal environment"
     inputs:
       - name: name
@@ -23,14 +23,14 @@ tasks:
       - name: description
         desc: "Description of the environment"
     cmds:
-      -| 
-        name={{.name}}
+      - |
+        name="{{.name}}"
         description="{{.description}}"
-        
         
         if [ -z "$name" ]; then
           echo "name is required"
           exit 1 
         fi
 
-        cp -r {{.TASKFILE_DIR}}/boiler/* {{.USER_WORKING_DIR}}/$name/
+        cp -r "{{.TASKFILE_DIR}}/boiler/*" "{{.USER_WORKING_DIR}}/$name/"
+
