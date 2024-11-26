@@ -27,9 +27,19 @@ tasks:
         name="{{.name}}"
         description="{{.description}}"
         
+        # Check if `name` is provided
         if [ -z "$name" ]; then
           echo "name is required"
           exit 1 
+        fi
+
+        # Create `name` folder as a new project
+        # Throw error if folder already exists
+        if [ -d "$name" ]; then
+          echo "Project already exists"
+          exit 1
+        else
+          mkdir {{.USER_WORKING_DIR}}/$name
         fi
 
         cp -r "{{.TASKFILE_DIR}}/boiler/*" "{{.USER_WORKING_DIR}}/$name/"
