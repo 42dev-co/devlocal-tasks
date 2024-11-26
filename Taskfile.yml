@@ -42,5 +42,5 @@ tasks:
           mkdir {{.USER_WORKING_DIR}}/$name
         fi
 
-        cp -r "{{.TASKFILE_DIR}}/boiler/*" "{{.USER_WORKING_DIR}}/$name/"
+        cp -r "{{.TASKFILE_DIR}}/boiler/." "{{.USER_WORKING_DIR}}/$name/"
 
