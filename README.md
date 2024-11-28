@@ -16,6 +16,8 @@ This is to create a development local env with minikube
 
 4. Make changes to `setup.config`
 
-5. Create/Start cluster, `task up`.
+5. Install requirements, `task install-requirements`
+
+6. Create/Start cluster, `task up`.
 
 

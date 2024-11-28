@@ -26,6 +26,21 @@ tasks:
     desc: "Prints the list of available tasks"
     cmds:
       - task --list
+  
+  install-requirements:
+    silent: true
+    desc: Install requirements
+    vars:
+      packages:
+        - w3m
+        - k9s
+        - kubectl
+        - helm
+        - minikube
+        - stern
+    cmds:
+      - for: { var: packages }
+        cmd: devbox global add {{.ITEM}}
 
   debug:
     silent: true
