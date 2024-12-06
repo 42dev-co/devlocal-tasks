@@ -124,6 +124,7 @@ tasks:
           --namespace kube-system \
           --create-namespace \
           --set keyRotation.enabled=false \
+          --version {{.KUBESEAL_VERSION}} \
           --wait
       - task: BACKUP_KUBESEAL_SECRET_KEY
       - task: RESTORE_KUBESEAL_SECRET_KEY
