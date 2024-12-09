@@ -118,42 +118,76 @@ tasks:
     silent: true
     desc: "Install kubeseal"
     cmds:
+      - task: GENERATE_KUBESEAL_CERT_KEY
+      - task: RESTORE_KUBESEAL_CERT_KEY
       - |
         helm upgrade --install sealed-secrets-controller sealed-secrets \
           --repo https://charts.bitnami.com/bitnami \
           --namespace kube-system \
           --create-namespace \
-          --set keyRotation.enabled=false \
+          --set keyRenewPeriod=0 \
           --version {{.KUBESEAL_VERSION}} \
           --wait
-      - task: BACKUP_KUBESEAL_SECRET_KEY
-      - task: RESTORE_KUBESEAL_SECRET_KEY
 
-  RESTORE_KUBESEAL_SECRET_KEY:
+  RESTORE_KUBESEAL_CERT_KEY:
     internal: true
     silent: true
-    desc: "Restore kubeseal"
+    desc: "Restore kubeseal Cert & Key"
     cmds:
       - |
-        # check if the secret file exists and if it does, restore it
-        if [ -f {{.TASKFILE_DIR}}/{{.KUBESEAL_SECRET_KEY_FILE}} ]; then
-          kubectl apply -f {{.TASKFILE_DIR}}/{{.KUBESEAL_SECRET_KEY_FILE}}
-        fi 
+        if [ ! -d {{.TASKFILE_DIR}}/.data ] || [ ! -f {{.TASKFILE_DIR}}/.data/sealed-secrets.key ] || [ ! -f {{.TASKFILE_DIR}}/.data/sealed-secrets.crt ]; then
+          echo "Cert & Key not found, exiting..."
+          exit 1
+        else
+          # Restore the cert & key as secret
+          kubectl create secret tls sealed-secrets-key \
+            --cert={{.TASKFILE_DIR}}/.data/sealed-secrets.crt \
+            --key={{.TASKFILE_DIR}}/.data/sealed-secrets.key \
+            --namespace=kube-system
+          # Label the secret
+          kubectl label secret sealed-secrets-key \
+            sealedsecrets.bitnami.com/sealed-secrets-key=active \
+            --namespace=kube-system
+        fi
 
-  BACKUP_KUBESEAL_SECRET_KEY:
-    internal: true
+  GENERATE_KUBESEAL_CERT_KEY:
+    internal: false
     silent: true
-    desc: "Backup kubeseal"
+    desc: "Generate kube seal Cert & Key"
     cmds:
       - |
-        # check if the secret file exists
-        if [ ! -f {{.TASKFILE_DIR}}/{{.KUBESEAL_SECRET_KEY_FILE}} ]; then
-          kubectl get secret -n kube-system sealed-secrets-key -o yaml > {{.TASKFILE_DIR}}/{{.KUBESEAL_SECRET_KEY_FILE}}
+        # Generate the cert & key
+        # if .data directory does not exist, create it
+        if [ ! -d {{.TASKFILE_DIR}}/.data ]; then
+          mkdir -p {{.TASKFILE_DIR}}/.data
+        fi
+        # if the cert & key does not exist, create it
+        if [ ! -f {{.TASKFILE_DIR}}/.data/sealed-secrets.key ] || [ ! -f {{.TASKFILE_DIR}}/.data/sealed-secrets.crt ]; then
+          openssl req -x509 -nodes -newkey rsa:4096 -keyout {{.TASKFILE_DIR}}/.data/sealed-secrets.key -out {{.TASKFILE_DIR}}/.data/sealed-secrets.crt -days 365 -subj "/CN=sealed-secrets/O=sealed-secrets"
+        fi
+
+  test_kubeseal:
+    desc: "Test kubeseal"
+    vars:
+      secretMessage: "This is a Secret"
+    cmds:
+      - |
+        # Check if SealedSecret my-secret exists, if not create it
+        if ! kubectl get sealedsecret my-secret -n default > /dev/null 2>&1; then
+          echo -n "{{.secretMessage}}" | kubectl create secret generic my-secret --dry-run=client --from-file=secret-key=/dev/stdin -o yaml | kubeseal -o yaml | kubectl apply -f -
+        fi
+        
+        res=$(kubectl get secret my-secret -n default -o jsonpath="{.data.secret-key}" | base64 --decode)
+
+        if [[ $res == "{{.secretMessage}}" ]]; then
+          echo "Kubeseal test passed"
+        else
+          echo "Kubeseal test failed"
         fi
 
   INSTALL_ARGOCD:
     internal: true
-    silent: true
+    silent: false
     desc: "Install ArgoCD"
     vars:
       version: '{{ default "7.5.2"  .version }}'
