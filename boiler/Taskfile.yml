@@ -199,7 +199,7 @@ tasks:
           --namespace argocd \
           --create-namespace \
           --version={{.version}} \
-          --set global.domain="{{.domain}}" \
+          --set global.domain="argocd.{{.domain}}" \
           --set server.service.type=NodePort \
           --set server.extraArgs="{--insecure}" \
           --set server.ingress.enabled=true \
